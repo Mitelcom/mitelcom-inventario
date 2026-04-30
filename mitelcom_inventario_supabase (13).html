@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>mitelcom — Inventario de Equipos</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>
+<style>
+:root {
+  --navy:#2B4162; --navy-light:#3a5580; --teal:#50B2C0; --teal-light:#e8f6f8;
+  --orange:#D36135; --orange-light:#fde8de; --cream:#FEEFDD;
+  --white:#ffffff; --gray-50:#f8f9fb; --gray-100:#eef0f4;
+  --gray-300:#c8cdd8; --gray-500:#7a8394; --gray-700:#3d4455;
+  --text:#1a2333; --radius:10px;
+  --shadow:0 2px 12px rgba(43,65,98,0.10);
+  --shadow-lg:0 8px 32px rgba(43,65,98,0.18);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--gray-50);color:var(--text);min-height:100vh;}
+.login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy);}
+.login-card{background:white;border-radius:16px;padding:2.5rem 2rem;width:100%;max-width:380px;box-shadow:var(--shadow-lg);}
+.login-logo{text-align:center;margin-bottom:1.5rem;}
+.login-logo svg{width:90px;height:90px;display:block;margin:0 auto 8px;}
+.login-sub{font-size:12px;color:var(--gray-500);margin-top:3px;text-align:center;}
+.login-title{font-size:15px;font-weight:600;color:var(--navy);margin-bottom:1.25rem;text-align:center;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:12px;font-weight:500;color:var(--navy);margin-bottom:5px;}
+.field input{width:100%;padding:10px 12px;border:1px solid var(--gray-300);border-radius:8px;font-size:14px;color:var(--text);background:var(--gray-50);font-family:inherit;transition:border-color .15s;}
+.field input:focus{outline:none;border-color:var(--teal);background:white;}
+.btn-primary{width:100%;padding:11px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;}
+.btn-primary:hover{background:var(--navy-light);}
+.btn-primary:disabled{opacity:.6;cursor:not-allowed;}
+.login-error{background:var(--orange-light);color:#9e4020;border-radius:7px;padding:9px 12px;font-size:12px;margin-bottom:12px;display:none;}
+.login-error.show{display:block;}
+.login-footer{text-align:center;margin-top:1.25rem;font-size:11px;color:var(--gray-500);}
+.topbar{background:var(--navy);height:54px;padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.18);}
+.brand{display:flex;align-items:center;gap:10px;}
+.brand svg{width:32px;height:32px;}
+.brand-name{font-size:16px;font-weight:400;color:white;}
+.brand-name b{font-weight:700;}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.user-pill{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,0.1);border-radius:20px;padding:4px 12px 4px 6px;}
+.avatar{width:26px;height:26px;border-radius:50%;background:var(--teal);color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}
+.user-email{font-size:12px;color:rgba(255,255,255,0.8);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.btn-out{background:rgba(255,255,255,0.12);border:none;color:white;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;}
+.btn-out:hover{background:rgba(255,255,255,0.22);}
+.accent-stripe{height:3px;display:flex;}
+.accent-stripe span{flex:1;}
+.main{max-width:1280px;margin:0 auto;padding:1.5rem 1.5rem 3rem;}
+.page-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:1rem;}
+.page-title{font-size:21px;font-weight:600;color:var(--navy);}
+.page-sub{font-size:12px;color:var(--gray-500);margin-top:3px;}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.25rem;}
+.stat-card{background:white;border-radius:var(--radius);padding:1rem 1.25rem;box-shadow:var(--shadow);border-left:3px solid transparent;transition:transform .15s;}
+.stat-card:hover{transform:translateY(-2px);}
+.stat-card.s1{border-color:var(--navy);} .stat-card.s2{border-color:var(--teal);}
+.stat-card.s3{border-color:var(--orange);} .stat-card.s4{border-color:#c8a96e;}
+.stat-num{font-size:26px;font-weight:700;color:var(--navy);line-height:1;}
+.stat-lbl{font-size:12px;color:var(--gray-500);margin-top:3px;}
+.toolbar{background:white;border-radius:var(--radius);padding:.75rem 1rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap;box-shadow:var(--shadow);margin-bottom:1rem;}
+.search-wrap{position:relative;flex:1;min-width:180px;}
+.search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);opacity:.35;width:14px;height:14px;}
+.s-input{width:100%;padding:7px 10px 7px 30px;border:1px solid var(--gray-100);border-radius:7px;font-size:13px;background:var(--gray-50);color:var(--text);}
+.s-input:focus{outline:none;border-color:var(--teal);background:white;}
+.pills{display:flex;gap:6px;flex-wrap:wrap;}
+.pill{padding:5px 12px;border-radius:20px;font-size:12px;border:1px solid var(--gray-300);cursor:pointer;background:white;color:var(--gray-700);transition:all .15s;}
+.pill.on{background:var(--navy);color:white;border-color:var(--navy);}
+.btn-sync{padding:7px 12px;background:var(--gray-50);color:var(--gray-700);border:1px solid var(--gray-300);border-radius:7px;font-size:13px;cursor:pointer;}
+.btn-sync:hover{background:var(--gray-100);}
+.btn-add{padding:7px 16px;background:var(--navy);color:white;border:none;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;}
+.btn-add:hover{background:var(--navy-light);}
+.btn-export{padding:7px 14px;background:var(--teal);color:white;border:none;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;}
+.btn-export:hover{background:#3d9aaa;}
+.table-card{background:white;border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:920px;}
+thead tr{background:var(--navy);}
+thead th{padding:11px 12px;text-align:left;color:rgba(255,255,255,0.85);font-weight:500;font-size:11.5px;letter-spacing:0.3px;white-space:nowrap;border-right:1px solid rgba(255,255,255,0.08);}
+thead th:last-child{border-right:none;}
+tbody tr{border-bottom:1px solid var(--gray-100);transition:background .1s;}
+tbody tr:hover{background:rgba(80,178,192,0.06);}
+tbody tr:nth-child(even){background:var(--gray-50);}
+tbody td{padding:10px 12px;vertical-align:middle;}
+.td-id{font-family:monospace;font-size:11px;color:var(--gray-500);}
+.td-name{font-weight:500;}
+.code{font-size:11px;background:var(--gray-50);padding:2px 6px;border-radius:4px;font-family:monospace;}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+.b-activo{background:var(--teal-light);color:#0a7a8a;}
+.b-revision{background:var(--orange-light);color:#9e4020;}
+.b-almacen{background:var(--cream);color:#8a6020;}
+.b-baja{background:var(--gray-100);color:var(--gray-500);}
+.actions{display:flex;gap:6px;}
+.btn-e,.btn-d{padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;border:none;font-weight:500;transition:all .15s;}
+.btn-e{background:var(--teal-light);color:#0a7a8a;} .btn-e:hover{background:var(--teal);color:white;}
+.btn-d{background:var(--orange-light);color:#9e4020;} .btn-d:hover{background:var(--orange);color:white;}
+.empty-state,.loading-state{text-align:center;padding:3rem 1rem;color:var(--gray-500);}
+.spinner{width:34px;height:34px;border:3px solid var(--gray-100);border-top-color:var(--teal);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 1rem;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.overlay{position:fixed;inset:0;z-index:200;background:rgba(10,18,32,.55);display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;pointer-events:none;transition:opacity .2s;}
+.overlay.open{opacity:1;pointer-events:all;}
+.modal{background:white;border-radius:14px;width:100%;max-width:600px;box-shadow:var(--shadow-lg);transform:translateY(16px);transition:transform .2s;max-height:90vh;overflow-y:auto;}
+.overlay.open .modal{transform:translateY(0);}
+.modal-hdr{background:var(--navy);color:white;padding:1rem 1.25rem;border-radius:14px 14px 0 0;display:flex;align-items:center;justify-content:space-between;}
+.modal-hdr span{font-size:15px;font-weight:600;}
+.btn-x{background:rgba(255,255,255,.15);border:none;color:white;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
+.btn-x:hover{background:rgba(255,255,255,.25);}
+.modal-body{padding:1.25rem;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.ff{display:flex;flex-direction:column;gap:5px;}
+.ff.full{grid-column:1/-1;}
+.ff label{font-size:12px;font-weight:500;color:var(--navy);}
+.ff input,.ff select,.ff textarea{padding:8px 10px;border:1px solid var(--gray-300);border-radius:7px;font-size:13px;font-family:inherit;color:var(--text);background:var(--gray-50);}
+.ff input:focus,.ff select:focus,.ff textarea:focus{outline:none;border-color:var(--teal);background:white;}
+.ff textarea{resize:vertical;min-height:70px;}
+.modal-ftr{padding:.75rem 1.25rem 1.25rem;display:flex;justify-content:flex-end;gap:10px;}
+.btn-cancel{padding:8px 18px;background:var(--gray-100);color:var(--gray-700);border:none;border-radius:7px;font-size:13px;cursor:pointer;font-weight:500;}
+.btn-save{padding:8px 20px;background:var(--navy);color:white;border:none;border-radius:7px;font-size:13px;cursor:pointer;font-weight:600;display:flex;align-items:center;gap:6px;}
+.btn-save:hover{background:var(--navy-light);} .btn-save:disabled{opacity:.6;cursor:not-allowed;}
+.photo-section{margin-top:14px;}
+.photo-section label{font-size:12px;font-weight:500;color:var(--navy);display:block;margin-bottom:8px;}
+.photo-drop{border:2px dashed var(--gray-300);border-radius:10px;padding:1.25rem;text-align:center;cursor:pointer;background:var(--gray-50);}
+.photo-drop:hover{border-color:var(--teal);background:var(--teal-light);}
+.photo-drop input{display:none;}
+.photo-drop p{font-size:12px;color:var(--gray-500);}
+.photo-drop p b{color:var(--teal);}
+.photo-previews{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-top:10px;}
+.photo-thumb{position:relative;border-radius:8px;overflow:hidden;aspect-ratio:1;background:var(--gray-100);}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;}
+.del-photo{position:absolute;top:4px;right:4px;background:rgba(211,97,53,0.85);color:white;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.td-photos{display:flex;gap:4px;flex-wrap:wrap;}
+.td-photo-thumb{width:36px;height:36px;border-radius:5px;overflow:hidden;cursor:pointer;border:1px solid var(--gray-300);}
+.td-photo-thumb img{width:100%;height:100%;object-fit:cover;}
+.lightbox{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.88);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
+.lightbox.open{opacity:1;pointer-events:all;}
+.lightbox img{max-width:90vw;max-height:88vh;border-radius:10px;object-fit:contain;}
+.lightbox-close{position:absolute;top:1rem;right:1.25rem;background:rgba(255,255,255,0.15);border:none;color:white;width:36px;height:36px;border-radius:50%;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;z-index:300;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;color:white;box-shadow:var(--shadow-lg);transform:translateY(60px);opacity:0;transition:all .25s;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.ok{background:var(--teal);} .toast.err{background:var(--orange);}
+@media(max-width:640px){.stats-row{grid-template-columns:1fr 1fr;}.form-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<div id="login-screen" class="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <svg viewBox="0 0 100 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M10 18Q20 8 30 14" stroke="#2B4162" stroke-width="5" stroke-linecap="round" fill="none"/>
+  <path d="M6 26Q20 10 36 18" stroke="#2B4162" stroke-width="5" stroke-linecap="round" fill="none"/>
+  <path d="M18 75L35 30L50 58L65 30L82 75" stroke="#2B4162" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <text x="50" y="100" text-anchor="middle" font-family="Segoe UI,sans-serif" font-size="14" fill="#2B4162" letter-spacing="2"><tspan font-weight="700">mi</tspan>telcom</text>
+</svg>
+      <div class="login-sub">Sistema de Inventario de Equipos</div>
+    </div>
+    <div class="login-title">Acceso al inventario</div>
+    <div class="login-error" id="login-error"></div>
+    <div class="field">
+      <label>Correo electrónico</label>
+      <input type="email" id="l-email" placeholder="usuario@mitelcom.com" autocomplete="email">
+    </div>
+    <div class="field">
+      <label>Contraseña</label>
+      <input type="password" id="l-pass" placeholder="••••••••" autocomplete="current-password"
+             onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn-primary" id="btn-login" onclick="doLogin()">
+      <span id="login-label">Iniciar sesión</span>
+    </button>
+    <div class="login-footer">mitelcom.com · (55) 5025-0830</div>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+  <header class="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 100 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M10 18Q20 8 30 14" stroke="white" stroke-width="5" stroke-linecap="round" fill="none"/>
+  <path d="M6 26Q20 10 36 18" stroke="white" stroke-width="5" stroke-linecap="round" fill="none"/>
+  <path d="M18 75L35 30L50 58L65 30L82 75" stroke="white" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>
+      <span class="brand-name"><b>mi</b>telcom</span>
+    </div>
+    <div class="topbar-right">
+      <div class="user-pill">
+        <div class="avatar" id="avatar">--</div>
+        <span class="user-email" id="user-email">—</span>
+      </div>
+      <button class="btn-out" onclick="doLogout()">Salir</button>
+    </div>
+  </header>
+  <div class="accent-stripe">
+    <span style="background:#2B4162;flex:2"></span>
+    <span style="background:#50B2C0;flex:2"></span>
+    <span style="background:#D36135;flex:1"></span>
+    <span style="background:#FEEFDD;flex:1"></span>
+  </div>
+  <main class="main">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Inventario de Equipos</div>
+        <div class="page-sub" id="sync-label">Cargando…</div>
+      </div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card s1"><div class="stat-num" id="s-total">—</div><div class="stat-lbl">Equipos totales</div></div>
+      <div class="stat-card s2"><div class="stat-num" id="s-active">—</div><div class="stat-lbl">Activos</div></div>
+      <div class="stat-card s3"><div class="stat-num" id="s-review">—</div><div class="stat-lbl">En revisión</div></div>
+      <div class="stat-card s4"><div class="stat-num" id="s-stock">—</div><div class="stat-lbl">En almacén</div></div>
+    </div>
+    <div class="toolbar">
+      <div class="search-wrap">
+        <svg viewBox="0 0 20 20" fill="none"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13 13l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <input class="s-input" id="search" placeholder="Buscar por nombre, modelo, serie, ubicación…" oninput="renderTable()">
+      </div>
+      <div class="pills">
+        <span class="pill on" onclick="setFilter('todos',this)">Todos</span>
+        <span class="pill"    onclick="setFilter('Activo',this)">Activos</span>
+        <span class="pill"    onclick="setFilter('En revisión',this)">En revisión</span>
+        <span class="pill"    onclick="setFilter('En almacén',this)">En almacén</span>
+      </div>
+      <button class="btn-sync"   onclick="loadItems()">↺ Sync</button>
+      <button class="btn-export" onclick="exportCSV()">⬇ Exportar CSV</button>
+      <button class="btn-add"    onclick="openModal()">+ Agregar equipo</button>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Nombre del producto</th><th>Modelo</th><th>Marca</th>
+              <th>Número de serie</th><th>Instalado en</th><th>Cliente / Proyecto</th>
+              <th>Fecha instalación</th><th>Estado</th><th>Responsable</th>
+              <th>Fotos</th><th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tbody">
+            <tr><td colspan="12"><div class="loading-state"><div class="spinner"></div>Conectando…</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="overlay" id="overlay" onclick="closeOut(event)">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span id="modal-title">Agregar equipo</span>
+      <button class="btn-x" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="ff"><label>Nombre del producto *</label><input id="f-nombre" placeholder="ej: Router Mikrotik"></div>
+        <div class="ff"><label>Modelo *</label><input id="f-modelo" placeholder="ej: hEX S"></div>
+        <div class="ff"><label>Marca *</label><input id="f-marca" placeholder="ej: Mikrotik"></div>
+        <div class="ff"><label>Número de serie</label><input id="f-serie" placeholder="ej: RB760iGS-001"></div>
+        <div class="ff full"><label>Dónde está instalado</label><input id="f-ubicacion" placeholder="ej: Rack Piso 1"></div>
+        <div class="ff"><label>Cliente / Proyecto</label><input id="f-cliente" placeholder="ej: Hospital Ángeles"></div>
+        <div class="ff"><label>Fecha de instalación</label><input id="f-fecha" type="date"></div>
+        <div class="ff"><label>Estado</label>
+          <select id="f-estado">
+            <option>Activo</option><option>En revisión</option>
+            <option>En almacén</option><option>Baja</option>
+          </select>
+        </div>
+        <div class="ff"><label>Responsable</label><input id="f-responsable" placeholder="ej: Carlos Méndez"></div>
+        <div class="ff full"><label>Notas</label><textarea id="f-notas" placeholder="Observaciones…"></textarea></div>
+        <div class="ff full photo-section">
+          <label>Fotos del equipo instalado</label>
+          <div class="photo-drop" onclick="document.getElementById('photo-input').click()">
+            <input type="file" id="photo-input" accept="image/*" multiple onchange="handlePhotoSelect(event)">
+            <div style="font-size:28px;margin-bottom:6px">📷</div>
+            <p>Arrastra fotos aquí o <b>haz clic para seleccionar</b></p>
+            <p style="margin-top:4px;font-size:11px">JPG, PNG · Varias a la vez</p>
+          </div>
+          <div class="photo-previews" id="photo-previews"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-save" id="btn-save" onclick="saveItem()">
+        <span id="save-lbl">Guardar en Supabase</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightbox-img" src="" alt="Foto">
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var SUPA_URL = 'https://bwmdtvqigwfgcjdppqvg.supabase.co';
+var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3bWR0dnFpZ3dmZ2NqZHBwcXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NjI2MjAsImV4cCI6MjA5MzEzODYyMH0.0b1gz-Vob-nqzuaijQJaUqrRuPhhkcsv5rRq08gB0vE';
+var sb = null;
+var items = [];
+var editingId = null;
+var filterVal = 'todos';
+var pendingPhotos = [];
+var existingPhotos = [];
+
+function getClient() {
+  if (!sb) sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+  return sb;
+}
+
+async function doLogin() {
+  var email = document.getElementById('l-email').value.trim();
+  var pass  = document.getElementById('l-pass').value;
+  if (!email || !pass) { showErr('Ingresa tu correo y contraseña'); return; }
+  var btn = document.getElementById('btn-login');
+  var lbl = document.getElementById('login-label');
+  btn.disabled = true; lbl.textContent = 'Ingresando…';
+  var result = await getClient().auth.signInWithPassword({ email: email, password: pass });
+  if (result.error) {
+    btn.disabled = false; lbl.textContent = 'Iniciar sesión';
+    showErr(result.error.message === 'Invalid login credentials' ? 'Correo o contraseña incorrectos' : result.error.message);
+    return;
+  }
+  onLogin(result.data.user);
+}
+
+function onLogin(user) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  var initials = user.email.split('@')[0].substring(0,2).toUpperCase();
+  document.getElementById('avatar').textContent = initials;
+  document.getElementById('user-email').textContent = user.email;
+  loadItems();
+}
+
+async function doLogout() {
+  await getClient().auth.signOut();
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('l-pass').value = '';
+  items = []; renderTable(); updateStats();
+}
+
+async function checkSession() {
+  var result = await getClient().auth.getSession();
+  if (result.data && result.data.session && result.data.session.user) {
+    onLogin(result.data.session.user);
+  }
+}
+
+function showErr(msg) {
+  var el = document.getElementById('login-error');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(function() { el.classList.remove('show'); }, 4000);
+}
+
+async function loadItems() {
+  document.getElementById('sync-label').textContent = 'Sincronizando…';
+  setLoading(true);
+  var result = await getClient().from('inventario_equipos').select('*').order('created_at', { ascending: false });
+  if (result.error) { showToast('Error: ' + result.error.message, 'err'); setLoading(false); return; }
+  items = result.data || [];
+  renderTable(); updateStats();
+  document.getElementById('sync-label').textContent = 'Última sync: ' + new Date().toLocaleTimeString('es-MX');
+}
+
+async function saveItem() {
+  var nombre = document.getElementById('f-nombre').value.trim();
+  if (!nombre) { showToast('El nombre es obligatorio', 'err'); return; }
+  var row = {
+    nombre:      nombre,
+    modelo:      document.getElementById('f-modelo').value.trim(),
+    marca:       document.getElementById('f-marca').value.trim(),
+    num_serie:   document.getElementById('f-serie').value.trim(),
+    ubicacion:   document.getElementById('f-ubicacion').value.trim(),
+    cliente:     document.getElementById('f-cliente').value.trim(),
+    fecha_instal:document.getElementById('f-fecha').value || null,
+    estado:      document.getElementById('f-estado').value,
+    responsable: document.getElementById('f-responsable').value.trim(),
+    notas:       document.getElementById('f-notas').value.trim()
+  };
+  var btn = document.getElementById('btn-save');
+  var lbl = document.getElementById('save-lbl');
+  btn.disabled = true; lbl.textContent = 'Guardando…';
+  var error, savedData;
+  if (editingId) {
+    var r = await getClient().from('inventario_equipos').update(row).eq('id', editingId);
+    error = r.error;
+  } else {
+    var r = await getClient().from('inventario_equipos').insert([row]).select();
+    error = r.error; savedData = r.data;
+  }
+  btn.disabled = false; lbl.textContent = 'Guardar en Supabase';
+  if (error) { showToast('Error: ' + error.message, 'err'); return; }
+  var itemId = editingId || (savedData && savedData[0] && savedData[0].id);
+  if (itemId && pendingPhotos.length > 0) {
+    lbl.textContent = 'Subiendo fotos…'; btn.disabled = true;
+    var allUrls = await uploadPendingPhotos(itemId);
+    await getClient().from('inventario_equipos').update({ fotos: allUrls }).eq('id', itemId);
+    btn.disabled = false;
+  }
+  showToast(editingId ? 'Equipo actualizado ✓' : 'Equipo guardado ✓', 'ok');
+  closeModal(); await loadItems();
+}
+
+async function deleteItem(id) {
+  if (!confirm('¿Eliminar este equipo?')) return;
+  var result = await getClient().from('inventario_equipos').delete().eq('id', id);
+  if (result.error) { showToast('Error: ' + result.error.message, 'err'); return; }
+  showToast('Equipo eliminado', 'ok'); await loadItems();
+}
+
+var BADGE = {'Activo':'b-activo','En revisión':'b-revision','En almacén':'b-almacen','Baja':'b-baja'};
+
+function setLoading(on) {
+  if (on) document.getElementById('tbody').innerHTML =
+    '<tr><td colspan="12"><div class="loading-state"><div class="spinner"></div>Cargando…</div></td></tr>';
+}
+
+function renderTable() {
+  var q = (document.getElementById('search') ? document.getElementById('search').value : '').toLowerCase();
+  var visible = items.filter(function(r) {
+    var mf = filterVal === 'todos' || r.estado === filterVal;
+    var mq = !q || Object.values(r).join(' ').toLowerCase().includes(q);
+    return mf && mq;
+  });
+  if (!visible.length) {
+    document.getElementById('tbody').innerHTML =
+      '<tr><td colspan="12"><div class="empty-state">No se encontraron equipos</div></td></tr>';
+    return;
+  }
+  document.getElementById('tbody').innerHTML = visible.map(function(r, i) {
+    var fotos = r.fotos || [];
+    var fotosHtml = fotos.slice(0,3).map(function(url) {
+      return '<div class="td-photo-thumb" onclick="openLightbox(\'' + url + '\')"><img src="' + url + '" loading="lazy"></div>';
+    }).join('') + (fotos.length > 3 ? '<div class="td-photo-thumb" style="display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--gray-500)">+' + (fotos.length-3) + '</div>' : '');
+    return '<tr>' +
+      '<td class="td-id">' + (i+1) + '</td>' +
+      '<td class="td-name">' + (r.nombre||'') + '</td>' +
+      '<td>' + (r.modelo||'—') + '</td>' +
+      '<td>' + (r.marca||'—') + '</td>' +
+      '<td><span class="code">' + (r.num_serie||'—') + '</span></td>' +
+      '<td>' + (r.ubicacion||'—') + '</td>' +
+      '<td>' + (r.cliente||'—') + '</td>' +
+      '<td>' + (r.fecha_instal ? new Date(r.fecha_instal+'T12:00').toLocaleDateString('es-MX') : '—') + '</td>' +
+      '<td><span class="badge ' + (BADGE[r.estado]||'b-activo') + '">' + (r.estado||'') + '</span></td>' +
+      '<td>' + (r.responsable||'—') + '</td>' +
+      '<td><div class="td-photos">' + fotosHtml + '</div></td>' +
+      '<td><div class="actions">' +
+        '<button class="btn-e" onclick="openModal(' + r.id + ')">Editar</button>' +
+        '<button class="btn-d" onclick="deleteItem(' + r.id + ')">Eliminar</button>' +
+      '</div></td>' +
+    '</tr>';
+  }).join('');
+}
+
+function updateStats() {
+  document.getElementById('s-total').textContent  = items.length;
+  document.getElementById('s-active').textContent = items.filter(function(r){return r.estado==='Activo';}).length;
+  document.getElementById('s-review').textContent = items.filter(function(r){return r.estado==='En revisión';}).length;
+  document.getElementById('s-stock').textContent  = items.filter(function(r){return r.estado==='En almacén';}).length;
+}
+
+function setFilter(val, el) {
+  filterVal = val;
+  document.querySelectorAll('.pill').forEach(function(p){p.classList.remove('on');});
+  el.classList.add('on'); renderTable();
+}
+
+function openModal(id) {
+  editingId = id || null;
+  document.getElementById('modal-title').textContent = id ? 'Editar equipo' : 'Agregar equipo';
+  if (id) {
+    var r = items.find(function(x){return x.id == id;});
+    if (r) {
+      document.getElementById('f-nombre').value      = r.nombre      ||'';
+      document.getElementById('f-modelo').value      = r.modelo      ||'';
+      document.getElementById('f-marca').value       = r.marca       ||'';
+      document.getElementById('f-serie').value       = r.num_serie   ||'';
+      document.getElementById('f-ubicacion').value   = r.ubicacion   ||'';
+      document.getElementById('f-cliente').value     = r.cliente     ||'';
+      document.getElementById('f-fecha').value       = r.fecha_instal||'';
+      document.getElementById('f-estado').value      = r.estado      ||'Activo';
+      document.getElementById('f-responsable').value = r.responsable ||'';
+      document.getElementById('f-notas').value       = r.notas       ||'';
+    }
+    existingPhotos = (items.find(function(x){return x.id==id;})||{}).fotos||[];
+  } else {
+    ['nombre','modelo','marca','serie','ubicacion','cliente','fecha','responsable','notas'].forEach(function(f){
+      var el = document.getElementById('f-'+f); if(el) el.value='';
+    });
+    document.getElementById('f-estado').value = 'Activo';
+    existingPhotos = [];
+  }
+  pendingPhotos = [];
+  renderPhotoPreviews();
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closeModal() { document.getElementById('overlay').classList.remove('open'); editingId = null; }
+function closeOut(e)  { if(e.target===document.getElementById('overlay')) closeModal(); }
+
+function handlePhotoSelect(e) {
+  Array.from(e.target.files).forEach(function(file) {
+    pendingPhotos.push({ file: file, previewUrl: URL.createObjectURL(file) });
+  });
+  renderPhotoPreviews();
+  document.getElementById('photo-input').value = '';
+}
+
+function renderPhotoPreviews() {
+  var container = document.getElementById('photo-previews');
+  var all = existingPhotos.map(function(url){return {type:'existing',url:url};})
+    .concat(pendingPhotos.map(function(p,i){return {type:'pending',url:p.previewUrl,idx:i};}));
+  if (!all.length) { container.innerHTML = ''; return; }
+  container.innerHTML = all.map(function(item) {
+    return item.type==='existing'
+      ? '<div class="photo-thumb"><img src="'+item.url+'" loading="lazy"><button class="del-photo" onclick="removeExistingPhoto(\''+ item.url +'\')">✕</button></div>'
+      : '<div class="photo-thumb"><img src="'+item.url+'"><button class="del-photo" onclick="removePendingPhoto('+item.idx+')">✕</button></div>';
+  }).join('');
+}
+
+function removeExistingPhoto(url) { existingPhotos = existingPhotos.filter(function(u){return u!==url;}); renderPhotoPreviews(); }
+function removePendingPhoto(idx)  { pendingPhotos.splice(idx,1); renderPhotoPreviews(); }
+
+async function uploadPendingPhotos(equipoId) {
+  var uploaded = existingPhotos.slice();
+  for (var i=0; i<pendingPhotos.length; i++) {
+    var p = pendingPhotos[i];
+    var ext  = p.file.name.split('.').pop();
+    var path = 'equipo-' + equipoId + '/' + Date.now() + '-' + i + '.' + ext;
+    var up = await getClient().storage.from('equipos-fotos').upload(path, p.file, {upsert:true});
+    if (up.error) { showToast('Error subiendo foto: '+up.error.message,'err'); continue; }
+    var pub = getClient().storage.from('equipos-fotos').getPublicUrl(path);
+    uploaded.push(pub.data.publicUrl);
+  }
+  return uploaded;
+}
+
+function openLightbox(url)  { document.getElementById('lightbox-img').src=url; document.getElementById('lightbox').classList.add('open'); }
+function closeLightbox()    { document.getElementById('lightbox').classList.remove('open'); }
+
+function exportCSV() {
+  var headers = ['#','Nombre','Modelo','Marca','Serie','Ubicación','Cliente','Fecha','Estado','Responsable','Notas'];
+  var lines = [headers.join(',')].concat(items.map(function(r,i) {
+    return [i+1,r.nombre,r.modelo,r.marca,r.num_serie,r.ubicacion,r.cliente,r.fecha_instal,r.estado,r.responsable,r.notas]
+      .map(function(v){ return '"'+((v||'').toString().replace(/"/g,'""'))+'"'; }).join(',');
+  }));
+  var blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'mitelcom-inventario-' + new Date().toISOString().split('T')[0] + '.csv';
+  a.click();
+}
+
+function showToast(msg, type) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast ' + (type||'ok') + ' show';
+  setTimeout(function(){ t.classList.remove('show'); }, 3200);
+}
+
+checkSession();
+</script>
+</body>
+</html>
