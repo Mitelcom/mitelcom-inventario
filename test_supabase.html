@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>mitelcom - Inventario</title>
+</head>
+<body>
+<p>Cargando...</p>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+var SUPA_URL = 'https://bwmdtvqigwfgcjdppqvg.supabase.co';
+var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ3bWR0dnFpZ3dmZ2NqZHBwcXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1NjI2MjAsImV4cCI6MjA5MzEzODYyMH0.0b1gz-Vob-nqzuaijQJaUqrRuPhhkcsv5rRq08gB0vE';
+var sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+document.querySelector('p').textContent = 'Supabase cargado OK - probando conexion...';
+sb.auth.getSession().then(function(r) {
+  document.querySelector('p').textContent = 'Conexion OK. Sesion: ' + (r.data.session ? 'activa' : 'ninguna');
+}).catch(function(e) {
+  document.querySelector('p').textContent = 'Error: ' + e.message;
+});
+</script>
+</body>
+</html>
