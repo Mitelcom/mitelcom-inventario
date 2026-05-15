@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>mitelcom — Clientes</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+:root{--navy:#2B4162;--navy-light:#3a5580;--teal:#50B2C0;--teal-light:#e8f6f8;--orange:#D36135;--orange-light:#fde8de;--cream:#FEEFDD;--gray-50:#f8f9fb;--gray-100:#eef0f4;--gray-300:#c8cdd8;--gray-500:#7a8394;--gray-700:#3d4455;--text:#1a2333;--radius:10px;--shadow:0 2px 12px rgba(43,65,98,.10);--shadow-lg:0 8px 32px rgba(43,65,98,.18);}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--gray-50);color:var(--text);min-height:100vh;}
+/* LOGIN */
+.login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--navy);}
+.login-card{background:#fff;border-radius:16px;padding:2.5rem 2rem;width:100%;max-width:380px;box-shadow:var(--shadow-lg);}
+.login-logo{text-align:center;margin-bottom:1.5rem;}
+.login-logo img{display:block;margin:0 auto 8px;width:90px;height:90px;object-fit:contain;}
+.login-sub{font-size:12px;color:var(--gray-500);text-align:center;}
+.login-title{font-size:15px;font-weight:600;color:var(--navy);margin-bottom:1.25rem;text-align:center;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:12px;font-weight:500;color:var(--navy);margin-bottom:5px;}
+.field input{width:100%;padding:10px 12px;border:1px solid var(--gray-300);border-radius:8px;font-size:14px;color:var(--text);background:var(--gray-50);font-family:inherit;}
+.field input:focus{outline:none;border-color:var(--teal);background:#fff;}
+.btn-primary{width:100%;padding:11px;background:var(--navy);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;}
+.btn-primary:hover{background:var(--navy-light);}
+.btn-primary:disabled{opacity:.6;cursor:not-allowed;}
+.login-error{background:var(--orange-light);color:#9e4020;border-radius:7px;padding:9px 12px;font-size:12px;margin-bottom:12px;display:none;}
+.login-error.show{display:block;}
+.login-footer{text-align:center;margin-top:1.25rem;font-size:11px;color:var(--gray-500);}
+/* TOPBAR */
+.topbar{background:var(--navy);height:54px;padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.18);}
+.brand{display:flex;align-items:center;gap:10px;}
+.brand img{width:32px;height:32px;object-fit:contain;filter:brightness(0) invert(1);}
+.brand-name{font-size:16px;font-weight:400;color:#fff;}
+.brand-name b{font-weight:700;}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.user-pill{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.1);border-radius:20px;padding:4px 12px 4px 6px;}
+.avatar{width:26px;height:26px;border-radius:50%;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}
+.user-email{font-size:12px;color:rgba(255,255,255,.8);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.btn-out{background:rgba(255,255,255,.12);border:none;color:#fff;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;}
+.accent-stripe{height:3px;display:flex;}
+.accent-stripe span{flex:1;}
+/* MAIN */
+.main{max-width:1400px;margin:0 auto;padding:1.5rem 1.5rem 3rem;}
+.page-title{font-size:21px;font-weight:600;color:var(--navy);}
+.page-sub{font-size:12px;color:var(--gray-500);margin-top:3px;margin-bottom:1.25rem;}
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.25rem;}
+.stat-card{background:#fff;border-radius:var(--radius);padding:1rem 1.25rem;box-shadow:var(--shadow);border-left:3px solid transparent;}
+.s1{border-color:var(--navy);} .s2{border-color:var(--teal);} .s3{border-color:var(--orange);} .s4{border-color:#c8a96e;}
+.stat-num{font-size:26px;font-weight:700;color:var(--navy);line-height:1;}
+.stat-lbl{font-size:12px;color:var(--gray-500);margin-top:3px;}
+/* TOOLBAR */
+.toolbar{background:#fff;border-radius:var(--radius);padding:.75rem 1rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap;box-shadow:var(--shadow);margin-bottom:1rem;}
+.s-input{padding:7px 10px;border:1px solid var(--gray-100);border-radius:7px;font-size:13px;background:var(--gray-50);color:var(--text);flex:1;min-width:180px;}
+.s-input:focus{outline:none;border-color:var(--teal);}
+.pills{display:flex;gap:6px;flex-wrap:wrap;}
+.pill{padding:5px 12px;border-radius:20px;font-size:12px;border:1px solid var(--gray-300);cursor:pointer;background:#fff;color:var(--gray-700);}
+.pill.on{background:var(--navy);color:#fff;border-color:var(--navy);}
+.btn-sm{padding:7px 12px;background:var(--gray-50);color:var(--gray-700);border:1px solid var(--gray-300);border-radius:7px;font-size:13px;cursor:pointer;}
+.btn-teal{padding:7px 14px;background:var(--teal);color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;}
+.btn-navy{padding:7px 16px;background:var(--navy);color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;}
+.btn-navy:hover{background:var(--navy-light);}
+/* TABLE */
+.table-card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:900px;}
+thead tr{background:var(--navy);}
+thead th{padding:11px 12px;text-align:left;color:rgba(255,255,255,.85);font-weight:500;font-size:11.5px;letter-spacing:.3px;white-space:nowrap;}
+tbody tr{border-bottom:1px solid var(--gray-100);cursor:pointer;}
+tbody tr:hover{background:rgba(80,178,192,.06);}
+tbody tr:nth-child(even){background:var(--gray-50);}
+tbody td{padding:10px 12px;vertical-align:middle;}
+.td-bold{font-weight:500;}
+.code-badge{display:inline-block;background:var(--navy);color:#fff;font-family:monospace;font-size:11px;padding:3px 8px;border-radius:5px;}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+.ba{background:var(--teal-light);color:#0a7a8a;}
+.bs{background:var(--orange-light);color:#9e4020;}
+.bc{background:var(--gray-100);color:var(--gray-500);}
+.acts{display:flex;gap:4px;}
+.btn-e,.btn-d,.btn-v{padding:4px 8px;border-radius:5px;font-size:11px;cursor:pointer;border:none;font-weight:500;}
+.btn-v{background:var(--teal-light);color:#0a7a8a;} .btn-v:hover{background:var(--teal);color:#fff;}
+.btn-e{background:rgba(43,65,98,.1);color:var(--navy);} .btn-e:hover{background:var(--navy);color:#fff;}
+.btn-d{background:var(--orange-light);color:#9e4020;} .btn-d:hover{background:var(--orange);color:#fff;}
+.center-msg{text-align:center;padding:3rem 1rem;color:var(--gray-500);}
+.spinner{width:34px;height:34px;border:3px solid var(--gray-100);border-top-color:var(--teal);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 1rem;}
+@keyframes spin{to{transform:rotate(360deg);}}
+/* DETALLE CLIENTE */
+.detalle-overlay{position:fixed;inset:0;z-index:200;background:rgba(10,18,32,.55);display:flex;align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto;opacity:0;pointer-events:none;transition:opacity .2s;}
+.detalle-overlay.open{opacity:1;pointer-events:all;}
+.detalle-modal{background:#fff;border-radius:14px;width:100%;max-width:900px;box-shadow:var(--shadow-lg);margin:auto;}
+.detalle-hdr{background:var(--navy);color:#fff;padding:1.25rem 1.5rem;border-radius:14px 14px 0 0;display:flex;align-items:center;justify-content:space-between;}
+.detalle-hdr-info h2{font-size:18px;font-weight:600;}
+.detalle-hdr-info p{font-size:12px;opacity:.7;margin-top:2px;}
+.btn-x{background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;}
+.detalle-tabs{display:flex;border-bottom:1px solid var(--gray-100);background:#fff;padding:0 1.5rem;}
+.dtab{padding:12px 16px;font-size:13px;font-weight:500;color:var(--gray-500);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;}
+.dtab.on{color:var(--navy);border-color:var(--navy);}
+.detalle-body{padding:1.5rem;}
+/* SECCIONES */
+.seccion{margin-bottom:1.5rem;}
+.seccion-title{font-size:13px;font-weight:600;color:var(--navy);margin-bottom:1rem;padding-bottom:6px;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;justify-content:space-between;}
+.info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.info-field{display:flex;flex-direction:column;gap:3px;}
+.info-label{font-size:11px;color:var(--gray-500);font-weight:500;}
+.info-value{font-size:13px;color:var(--text);font-weight:400;}
+/* CONTACTOS */
+.contactos-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+.contacto-card{background:var(--gray-50);border-radius:8px;padding:12px;border-left:3px solid var(--teal);}
+.contacto-tipo{font-size:10px;font-weight:600;color:var(--teal);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.contacto-nombre{font-size:13px;font-weight:600;color:var(--navy);}
+.contacto-datos{font-size:12px;color:var(--gray-500);margin-top:3px;line-height:1.6;}
+/* SERVICIOS */
+.servicio-card{background:var(--gray-50);border-radius:8px;padding:14px;margin-bottom:10px;border-left:3px solid var(--orange);}
+.servicio-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.servicio-tipo{font-size:13px;font-weight:600;color:var(--navy);}
+.servicio-id{font-size:11px;font-family:monospace;background:var(--navy);color:#fff;padding:2px 7px;border-radius:4px;}
+.servicio-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+/* DOCUMENTOS */
+.docs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;}
+.doc-card{background:var(--gray-50);border-radius:8px;padding:10px;text-align:center;border:1px solid var(--gray-100);cursor:pointer;transition:all .15s;}
+.doc-card:hover{border-color:var(--teal);background:var(--teal-light);}
+.doc-icon{font-size:28px;margin-bottom:6px;}
+.doc-tipo{font-size:10px;font-weight:600;color:var(--teal);text-transform:uppercase;}
+.doc-nombre{font-size:11px;color:var(--gray-700);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* MODAL FORM */
+.overlay{position:fixed;inset:0;z-index:300;background:rgba(10,18,32,.55);display:flex;align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto;opacity:0;pointer-events:none;transition:opacity .2s;}
+.overlay.open{opacity:1;pointer-events:all;}
+.modal{background:#fff;border-radius:14px;width:100%;max-width:680px;box-shadow:var(--shadow-lg);margin:auto;}
+.modal-hdr{background:var(--navy);color:#fff;padding:1rem 1.25rem;border-radius:14px 14px 0 0;display:flex;align-items:center;justify-content:space-between;}
+.modal-hdr span{font-size:15px;font-weight:600;}
+.modal-body{padding:1.25rem;}
+.section-hdr{font-size:12px;font-weight:600;color:var(--teal);text-transform:uppercase;letter-spacing:.5px;margin:1rem 0 .75rem;padding-bottom:4px;border-bottom:1px solid var(--gray-100);}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.fg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.ff{display:flex;flex-direction:column;gap:4px;}
+.ff.full{grid-column:1/-1;}
+.ff label{font-size:12px;font-weight:500;color:var(--navy);}
+.ff input,.ff select,.ff textarea{padding:8px 10px;border:1px solid var(--gray-300);border-radius:7px;font-size:13px;font-family:inherit;color:var(--text);background:var(--gray-50);}
+.ff input:focus,.ff select:focus,.ff textarea:focus{outline:none;border-color:var(--teal);background:#fff;}
+.ff textarea{resize:vertical;min-height:60px;}
+.modal-ftr{padding:.75rem 1.25rem 1.25rem;display:flex;justify-content:flex-end;gap:10px;}
+.btn-cancel{padding:8px 18px;background:var(--gray-100);color:var(--gray-700);border:none;border-radius:7px;font-size:13px;cursor:pointer;font-weight:500;}
+.btn-save{padding:8px 20px;background:var(--navy);color:#fff;border:none;border-radius:7px;font-size:13px;cursor:pointer;font-weight:600;}
+.btn-save:hover{background:var(--navy-light);}
+.btn-save:disabled{opacity:.6;cursor:not-allowed;}
+/* UPLOAD */
+.upload-zone{border:2px dashed var(--gray-300);border-radius:10px;padding:1rem;text-align:center;cursor:pointer;background:var(--gray-50);margin-top:8px;}
+.upload-zone:hover{border-color:var(--teal);background:var(--teal-light);}
+.upload-zone input{display:none;}
+/* ADD MINI */
+.btn-add-mini{padding:4px 10px;background:var(--teal-light);color:#0a7a8a;border:none;border-radius:5px;font-size:11px;cursor:pointer;font-weight:500;}
+.btn-add-mini:hover{background:var(--teal);color:#fff;}
+/* LIGHTBOX */
+.lightbox{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
+.lightbox.open{opacity:1;pointer-events:all;}
+.lightbox img{max-width:90vw;max-height:88vh;border-radius:10px;}
+.lb-close{position:absolute;top:1rem;right:1.25rem;background:rgba(255,255,255,.15);border:none;color:#fff;width:36px;height:36px;border-radius:50%;font-size:20px;cursor:pointer;}
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;z-index:600;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;color:#fff;box-shadow:var(--shadow-lg);transform:translateY(60px);opacity:0;transition:all .25s;}
+.toast.show{transform:translateY(0);opacity:1;}
+.tok{background:var(--teal);} .terr{background:var(--orange);}
+@media(max-width:640px){.stats-row{grid-template-columns:1fr 1fr;}.fg{grid-template-columns:1fr;}.fg3{grid-template-columns:1fr;}.info-grid{grid-template-columns:1fr 1fr;}.contactos-grid{grid-template-columns:1fr;}.servicio-grid{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen" class="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <img src="logo_mitelcom.png" alt="mitelcom">
+      <div class="login-sub">Sistema de Gestion de Clientes</div>
+    </div>
+    <div class="login-title">Acceso al sistema</div>
+    <div class="login-error" id="login-error"></div>
+    <div class="field"><label>Correo electronico</label><input type="email" id="l-email" placeholder="usuario@mitelcom.com"></div>
+    <div class="field"><label>Contrasena</label><input type="password" id="l-pass" placeholder="********"></div>
+    <button class="btn-primary" id="btn-login" onclick="doLogin()">Iniciar sesion</button>
+    <div class="login-footer">mitelcom.com · (55) 5025-0830</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+  <header class="topbar">
+    <div class="brand">
+      <img src="logo_mitelcom.png" alt="mitelcom">
+      <span class="brand-name"><b>mi</b>telcom</span>
+    </div>
+    <div class="topbar-right">
+      <div class="user-pill">
+        <div class="avatar" id="avatar">--</div>
+        <span class="user-email" id="user-email"></span>
+      </div>
+      <button class="btn-out" onclick="doLogout()">Salir</button>
+    </div>
+  </header>
+  <div class="accent-stripe">
+    <span style="background:#2B4162;flex:2"></span>
+    <span style="background:#50B2C0;flex:2"></span>
+    <span style="background:#D36135;flex:1"></span>
+    <span style="background:#FEEFDD;flex:1"></span>
+  </div>
+  <main class="main">
+    <div class="page-title">Gestion de Clientes</div>
+    <div class="page-sub" id="sync-lbl">Cargando...</div>
+    <div class="stats-row">
+      <div class="stat-card s1"><div class="stat-num" id="s-tot">0</div><div class="stat-lbl">Clientes totales</div></div>
+      <div class="stat-card s2"><div class="stat-num" id="s-act">0</div><div class="stat-lbl">Activos</div></div>
+      <div class="stat-card s3"><div class="stat-num" id="s-sus">0</div><div class="stat-lbl">Suspendidos</div></div>
+      <div class="stat-card s4"><div class="stat-num" id="s-ser">0</div><div class="stat-lbl">Servicios activos</div></div>
+    </div>
+    <div class="toolbar">
+      <input class="s-input" id="search" placeholder="Buscar cliente, RFC, ejecutivo..." oninput="renderTable()">
+      <div class="pills">
+        <span class="pill on" onclick="setFilter('todos',this)">Todos</span>
+        <span class="pill" onclick="setFilter('Activo',this)">Activos</span>
+        <span class="pill" onclick="setFilter('Suspendido',this)">Suspendidos</span>
+        <span class="pill" onclick="setFilter('Cancelado',this)">Cancelados</span>
+      </div>
+      <button class="btn-sm" onclick="loadAll()">Sync</button>
+      <button class="btn-teal" onclick="exportCSV()">Exportar CSV</button>
+      <button class="btn-navy" onclick="openClienteModal(0)">+ Nuevo cliente</button>
+    </div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Codigo</th><th>Razon Social</th><th>Nombre Comercial</th><th>RFC</th>
+            <th>Ejecutivo</th><th>Telefono</th><th>Estatus</th><th>Servicios</th><th>Acciones</th>
+          </tr></thead>
+          <tbody id="tbody">
+            <tr><td colspan="9"><div class="center-msg"><div class="spinner"></div>Conectando...</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- DETALLE CLIENTE -->
+<div class="detalle-overlay" id="detalle-overlay" onclick="if(event.target===this)closeDetalle()">
+  <div class="detalle-modal">
+    <div class="detalle-hdr">
+      <div class="detalle-hdr-info">
+        <h2 id="d-nombre">—</h2>
+        <p id="d-codigo">—</p>
+      </div>
+      <button class="btn-x" onclick="closeDetalle()">x</button>
+    </div>
+    <div class="detalle-tabs">
+      <div class="dtab on" onclick="switchTab('info',this)">Informacion</div>
+      <div class="dtab" onclick="switchTab('contactos',this)">Contactos</div>
+      <div class="dtab" onclick="switchTab('servicios',this)">Servicios</div>
+      <div class="dtab" onclick="switchTab('documentos',this)">Documentos</div>
+    </div>
+    <div class="detalle-body">
+      <!-- INFO -->
+      <div id="tab-info">
+        <div class="seccion">
+          <div class="seccion-title">Datos generales</div>
+          <div class="info-grid">
+            <div class="info-field"><span class="info-label">Razon Social</span><span class="info-value" id="d-razon">—</span></div>
+            <div class="info-field"><span class="info-label">Nombre Comercial</span><span class="info-value" id="d-comercial">—</span></div>
+            <div class="info-field"><span class="info-label">RFC</span><span class="info-value" id="d-rfc">—</span></div>
+            <div class="info-field"><span class="info-label">Telefono</span><span class="info-value" id="d-tel">—</span></div>
+            <div class="info-field"><span class="info-label">Correo</span><span class="info-value" id="d-correo">—</span></div>
+            <div class="info-field"><span class="info-label">Sitio Web</span><span class="info-value" id="d-web">—</span></div>
+            <div class="info-field"><span class="info-label">Industria</span><span class="info-value" id="d-industria">—</span></div>
+            <div class="info-field"><span class="info-label">Ejecutivo</span><span class="info-value" id="d-ejecutivo">—</span></div>
+            <div class="info-field"><span class="info-label">Estatus</span><span class="info-value" id="d-estatus">—</span></div>
+          </div>
+        </div>
+        <div class="seccion">
+          <div class="seccion-title">Contrato y direccion</div>
+          <div class="info-grid">
+            <div class="info-field"><span class="info-label">Periodo contrato</span><span class="info-value" id="d-periodo">—</span></div>
+            <div class="info-field"><span class="info-label">Fecha inicio</span><span class="info-value" id="d-finicio">—</span></div>
+            <div class="info-field"><span class="info-label">Fecha fin</span><span class="info-value" id="d-ffin">—</span></div>
+            <div class="info-field"><span class="info-label">Direccion</span><span class="info-value" id="d-dir">—</span></div>
+            <div class="info-field"><span class="info-label">Ciudad</span><span class="info-value" id="d-ciudad">—</span></div>
+            <div class="info-field"><span class="info-label">Estado</span><span class="info-value" id="d-estado">—</span></div>
+          </div>
+        </div>
+        <div class="seccion">
+          <div class="seccion-title">Notas</div>
+          <p style="font-size:13px;color:var(--gray-700);line-height:1.6" id="d-notas">—</p>
+        </div>
+      </div>
+      <!-- CONTACTOS -->
+      <div id="tab-contactos" style="display:none">
+        <div class="seccion">
+          <div class="seccion-title">
+            Contactos
+            <button class="btn-add-mini" onclick="openContactoModal(0)">+ Agregar contacto</button>
+          </div>
+          <div class="contactos-grid" id="contactos-list"></div>
+        </div>
+      </div>
+      <!-- SERVICIOS -->
+      <div id="tab-servicios" style="display:none">
+        <div class="seccion">
+          <div class="seccion-title">
+            Servicios contratados
+            <button class="btn-add-mini" onclick="openServicioModal(0)">+ Agregar servicio</button>
+          </div>
+          <div id="servicios-list"></div>
+        </div>
+      </div>
+      <!-- DOCUMENTOS -->
+      <div id="tab-documentos" style="display:none">
+        <div class="seccion">
+          <div class="seccion-title">
+            Documentos y evidencias
+            <button class="btn-add-mini" onclick="openDocModal()">+ Subir documento</button>
+          </div>
+          <div class="docs-grid" id="docs-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CLIENTE -->
+<div class="overlay" id="overlay-cliente" onclick="if(event.target===this)closeClienteModal()">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span id="cliente-modal-title">Nuevo cliente</span>
+      <button class="btn-x" onclick="closeClienteModal()">x</button>
+    </div>
+    <div class="modal-body">
+      <div class="section-hdr">Datos generales</div>
+      <div class="fg">
+        <div class="ff"><label>Razon Social *</label><input id="c-razon" placeholder="ej: Empresa SA de CV"></div>
+        <div class="ff"><label>Nombre Comercial</label><input id="c-comercial" placeholder="ej: Empresa"></div>
+        <div class="ff"><label>RFC</label><input id="c-rfc" placeholder="ej: EMP010101XXX"></div>
+        <div class="ff"><label>Industria</label><input id="c-industria" placeholder="ej: Hospital, Hotel..."></div>
+        <div class="ff"><label>Telefono</label><input id="c-tel" placeholder="ej: 55 1234 5678"></div>
+        <div class="ff"><label>Correo</label><input id="c-correo" placeholder="contacto@empresa.com"></div>
+        <div class="ff"><label>Sitio Web</label><input id="c-web" placeholder="www.empresa.com"></div>
+        <div class="ff"><label>Ejecutivo asignado</label><input id="c-ejecutivo" placeholder="ej: Carlos Mendez"></div>
+        <div class="ff"><label>Estatus</label>
+          <select id="c-estatus"><option>Activo</option><option>Suspendido</option><option>Cancelado</option></select>
+        </div>
+      </div>
+      <div class="section-hdr">Contrato</div>
+      <div class="fg">
+        <div class="ff"><label>Periodo contrato</label><input id="c-periodo" placeholder="ej: 12 meses, 24 meses"></div>
+        <div class="ff"><label>Fecha inicio contrato</label><input id="c-finicio" type="date"></div>
+        <div class="ff"><label>Fecha fin contrato</label><input id="c-ffin" type="date"></div>
+      </div>
+      <div class="section-hdr">Direccion</div>
+      <div class="fg">
+        <div class="ff full"><label>Direccion</label><input id="c-dir" placeholder="Calle, numero, colonia"></div>
+        <div class="ff"><label>Ciudad</label><input id="c-ciudad" placeholder="ej: Ciudad de Mexico"></div>
+        <div class="ff"><label>Estado</label><input id="c-estado" placeholder="ej: CDMX"></div>
+        <div class="ff"><label>CP</label><input id="c-cp" placeholder="ej: 06600"></div>
+      </div>
+      <div class="section-hdr">Notas</div>
+      <div class="fg">
+        <div class="ff full"><textarea id="c-notas" placeholder="Observaciones del cliente..."></textarea></div>
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn-cancel" onclick="closeClienteModal()">Cancelar</button>
+      <button class="btn-save" id="btn-save-cliente" onclick="saveCliente()">Guardar cliente</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONTACTO -->
+<div class="overlay" id="overlay-contacto" onclick="if(event.target===this)closeContactoModal()">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-hdr">
+      <span id="contacto-modal-title">Agregar contacto</span>
+      <button class="btn-x" onclick="closeContactoModal()">x</button>
+    </div>
+    <div class="modal-body">
+      <div class="fg">
+        <div class="ff"><label>Tipo de contacto *</label>
+          <select id="ct-tipo">
+            <option>Comercial</option><option>Cobranza</option>
+            <option>Tecnico</option><option>Facturacion</option><option>Otro</option>
+          </select>
+        </div>
+        <div class="ff"><label>Nombre completo *</label><input id="ct-nombre" placeholder="ej: Juan Perez"></div>
+        <div class="ff"><label>Puesto</label><input id="ct-puesto" placeholder="ej: Director, Administrador"></div>
+        <div class="ff"><label>Telefono</label><input id="ct-tel" placeholder="55 1234 5678"></div>
+        <div class="ff full"><label>Correo</label><input id="ct-correo" placeholder="juan@empresa.com"></div>
+        <div class="ff full"><label>Notas</label><textarea id="ct-notas" placeholder="Observaciones..."></textarea></div>
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn-cancel" onclick="closeContactoModal()">Cancelar</button>
+      <button class="btn-save" id="btn-save-contacto" onclick="saveContacto()">Guardar contacto</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SERVICIO -->
+<div class="overlay" id="overlay-servicio" onclick="if(event.target===this)closeServicioModal()">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span id="servicio-modal-title">Agregar servicio</span>
+      <button class="btn-x" onclick="closeServicioModal()">x</button>
+    </div>
+    <div class="modal-body">
+      <div class="section-hdr">Datos del servicio</div>
+      <div class="fg">
+        <div class="ff"><label>ID del servicio</label><input id="sv-id" placeholder="ej: SRV-001"></div>
+        <div class="ff"><label>Tipo de servicio *</label>
+          <select id="sv-tipo">
+            <option>Internet Dedicado Microonda</option>
+            <option>Internet Satelital</option>
+            <option>Internet 4G/5G</option>
+            <option>Otro</option>
+          </select>
+        </div>
+        <div class="ff"><label>Tipo de contrato</label>
+          <select id="sv-contrato"><option>Fijo</option><option>Evento</option></select>
+        </div>
+        <div class="ff"><label>Capacidad contratada</label><input id="sv-capacidad" placeholder="ej: 100 Mbps"></div>
+        <div class="ff"><label>Monto mensual</label><input id="sv-monto" type="number" placeholder="ej: 5000"></div>
+        <div class="ff"><label>Estatus</label>
+          <select id="sv-estatus"><option>Activo</option><option>Suspendido</option><option>Cancelado</option></select>
+        </div>
+      </div>
+      <div class="section-hdr">Adicionales</div>
+      <div class="fg">
+        <div class="ff full"><label>Servicios adicionales</label><input id="sv-adicionales" placeholder="ej: Diagonal, Direccionamiento adicional, Otro servicio"></div>
+      </div>
+      <div class="section-hdr">Instalacion</div>
+      <div class="fg">
+        <div class="ff"><label>Fecha de instalacion</label><input id="sv-fecha" type="date"></div>
+        <div class="ff"><label>Fecha inicio servicio</label><input id="sv-inicio" type="date"></div>
+        <div class="ff"><label>Fecha fin servicio</label><input id="sv-fin" type="date"></div>
+        <div class="ff"><label>Entrega</label>
+          <select id="sv-entrega"><option>Propio</option><option>Tercero</option></select>
+        </div>
+        <div class="ff"><label>Tercero (si aplica)</label><input id="sv-tercero" placeholder="ej: Nombre del proveedor"></div>
+        <div class="ff"><label>Radio base</label><input id="sv-radio" placeholder="ej: Torre Norte, Azotea Edificio A"></div>
+        <div class="ff full"><label>Notas</label><textarea id="sv-notas" placeholder="Observaciones del servicio..."></textarea></div>
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn-cancel" onclick="closeServicioModal()">Cancelar</button>
+      <button class="btn-save" id="btn-save-servicio" onclick="saveServicio()">Guardar servicio</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DOCUMENTO -->
+<div class="overlay" id="overlay-doc" onclick="if(event.target===this)closeDocModal()">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-hdr">
+      <span>Subir documento / imagen</span>
+      <button class="btn-x" onclick="closeDocModal()">x</button>
+    </div>
+    <div class="modal-body">
+      <div class="fg">
+        <div class="ff"><label>Tipo de documento *</label>
+          <select id="doc-tipo">
+            <option>Evidencia instalacion</option>
+            <option>Acta de entrega</option>
+            <option>Anteproyecto</option>
+            <option>Memoria fotografica</option>
+            <option>Contrato</option>
+            <option>Otro</option>
+          </select>
+        </div>
+        <div class="ff"><label>Nombre del documento</label><input id="doc-nombre" placeholder="ej: Evidencia router piso 1"></div>
+        <div class="ff full">
+          <label>Archivo (imagen o PDF)</label>
+          <div class="upload-zone" onclick="document.getElementById('doc-file').click()">
+            <input type="file" id="doc-file" accept="image/*,.pdf" onchange="onDocSelect(event)">
+            <div style="font-size:24px;margin-bottom:4px">Seleccionar archivo</div>
+            <p style="font-size:12px;color:var(--gray-500)" id="doc-file-name">JPG, PNG o PDF</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn-cancel" onclick="closeDocModal()">Cancelar</button>
+      <button class="btn-save" id="btn-save-doc" onclick="saveDoc()">Subir</button>
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="document.getElementById('lightbox').classList.remove('open')">
+  <button class="lb-close">x</button>
+  <img id="lb-img" src="" alt="">
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var SB_URL = 'https://ocnjrtaymvdihtcnpssg.supabase.co';
+var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9jbmpydGF5bXZkaWh0Y25wc3NnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg4NDYwNDgsImV4cCI6MjA5NDQyMjA0OH0.-iUIata2O_luZkOlIm7WOSG1jHuIC4c_hiXBsrBdCa0';
+var db = supabase.createClient(SB_URL, SB_KEY);
+var clientes = [], serviciosTodos = [], editClienteId = null, editContactoId = null, editServicioId = null;
+var currentClienteId = null, fv = 'todos', docFile = null;
+
+function gc(id){ return document.getElementById(id); }
+
+// AUTH
+async function doLogin(){
+  var email = gc('l-email').value.trim(), pass = gc('l-pass').value;
+  if(!email||!pass){ showErr('Ingresa correo y contrasena'); return; }
+  gc('btn-login').disabled=true; gc('btn-login').textContent='Ingresando...';
+  var r = await db.auth.signInWithPassword({email:email,password:pass});
+  if(r.error){ gc('btn-login').disabled=false; gc('btn-login').textContent='Iniciar sesion'; showErr(r.error.message==='Invalid login credentials'?'Correo o contrasena incorrectos':r.error.message); return; }
+  onLogin(r.data.user);
+}
+function onLogin(u){
+  gc('login-screen').style.display='none'; gc('app').style.display='block';
+  gc('avatar').textContent=u.email.substring(0,2).toUpperCase(); gc('user-email').textContent=u.email;
+  loadAll();
+}
+async function doLogout(){ await db.auth.signOut(); gc('app').style.display='none'; gc('login-screen').style.display='flex'; gc('l-pass').value=''; gc('btn-login').disabled=false; gc('btn-login').textContent='Iniciar sesion'; }
+function showErr(msg){ var el=gc('login-error'); el.textContent=msg; el.classList.add('show'); setTimeout(function(){el.classList.remove('show');},4000); }
+
+// LOAD
+async function loadAll(){
+  gc('sync-lbl').textContent='Sincronizando...';
+  var r1 = await db.from('clientes').select('*').order('created_at',{ascending:false});
+  var r2 = await db.from('servicios').select('*');
+  if(r1.error){ showToast('Error: '+r1.error.message,'terr'); return; }
+  clientes = r1.data||[];
+  serviciosTodos = r2.data||[];
+  renderTable(); updateStats();
+  gc('sync-lbl').textContent='Sync: '+new Date().toLocaleTimeString('es-MX');
+}
+
+function generateCodigo(){
+  var max=0;
+  clientes.forEach(function(c){ if(c.codigo){ var n=parseInt(c.codigo.replace('CLI-','')); if(!isNaN(n)&&n>max) max=n; }});
+  var n=max+1; return 'CLI-'+(n<10?'00'+n:n<100?'0'+n:n);
+}
+
+// RENDER TABLE
+var BESTATUS = {'Activo':'ba','Suspendido':'bs','Cancelado':'bc'};
+function renderTable(){
+  var q=(gc('search')?gc('search').value:'').toLowerCase();
+  var vis=clientes.filter(function(c){ return (fv==='todos'||c.estatus===fv)&&(!q||JSON.stringify(c).toLowerCase().includes(q)); });
+  if(!vis.length){ gc('tbody').innerHTML='<tr><td colspan="9"><div class="center-msg">No se encontraron clientes</div></td></tr>'; return; }
+  gc('tbody').innerHTML=vis.map(function(c){
+    var svs=serviciosTodos.filter(function(s){return s.cliente_id==c.id&&s.estatus==='Activo';}).length;
+    return '<tr onclick="verDetalle('+c.id+')">'+
+      '<td><span class="code-badge">'+(c.codigo||'—')+'</span></td>'+
+      '<td class="td-bold">'+(c.razon_social||'')+'</td>'+
+      '<td>'+(c.nombre_comercial||'—')+'</td>'+
+      '<td style="font-family:monospace;font-size:11px">'+(c.rfc||'—')+'</td>'+
+      '<td>'+(c.ejecutivo||'—')+'</td>'+
+      '<td>'+(c.telefono||'—')+'</td>'+
+      '<td><span class="badge '+(BESTATUS[c.estatus]||'ba')+'">'+(c.estatus||'')+'</span></td>'+
+      '<td style="text-align:center"><span class="badge ba">'+svs+'</span></td>'+
+      '<td onclick="event.stopPropagation()"><div class="acts">'+
+        '<button class="btn-v" onclick="verDetalle('+c.id+')">Ver</button>'+
+        '<button class="btn-e" onclick="openClienteModal('+c.id+')">Editar</button>'+
+        '<button class="btn-d" onclick="deleteCliente('+c.id+')">Eliminar</button>'+
+      '</div></td>'+
+    '</tr>';
+  }).join('');
+}
+
+function updateStats(){
+  gc('s-tot').textContent=clientes.length;
+  gc('s-act').textContent=clientes.filter(function(c){return c.estatus==='Activo';}).length;
+  gc('s-sus').textContent=clientes.filter(function(c){return c.estatus==='Suspendido';}).length;
+  gc('s-ser').textContent=serviciosTodos.filter(function(s){return s.estatus==='Activo';}).length;
+}
+function setFilter(val,el){ fv=val; document.querySelectorAll('.pill').forEach(function(p){p.classList.remove('on');}); el.classList.add('on'); renderTable(); }
+
+// DETALLE
+async function verDetalle(id){
+  currentClienteId=id;
+  var c=clientes.find(function(x){return x.id==id;});
+  if(!c) return;
+  gc('d-nombre').textContent=c.razon_social||'—';
+  gc('d-codigo').textContent=(c.codigo||'—')+' · '+(c.estatus||'');
+  gc('d-razon').textContent=c.razon_social||'—';
+  gc('d-comercial').textContent=c.nombre_comercial||'—';
+  gc('d-rfc').textContent=c.rfc||'—';
+  gc('d-tel').textContent=c.telefono||'—';
+  gc('d-correo').textContent=c.correo||'—';
+  gc('d-web').textContent=c.sitio_web||'—';
+  gc('d-industria').textContent=c.industria||'—';
+  gc('d-ejecutivo').textContent=c.ejecutivo||'—';
+  gc('d-estatus').textContent=c.estatus||'—';
+  gc('d-periodo').textContent=c.periodo_contrato||'—';
+  gc('d-finicio').textContent=c.fecha_inicio?new Date(c.fecha_inicio+'T12:00').toLocaleDateString('es-MX'):'—';
+  gc('d-ffin').textContent=c.fecha_fin?new Date(c.fecha_fin+'T12:00').toLocaleDateString('es-MX'):'—';
+  gc('d-dir').textContent=c.direccion||'—';
+  gc('d-ciudad').textContent=c.ciudad||'—';
+  gc('d-estado').textContent=c.estado||'—';
+  gc('d-notas').textContent=c.notas||'—';
+  switchTab('info', document.querySelectorAll('.dtab')[0]);
+  await loadContactos(id);
+  await loadServicios(id);
+  await loadDocs(id);
+  gc('detalle-overlay').classList.add('open');
+}
+
+function closeDetalle(){ gc('detalle-overlay').classList.remove('open'); currentClienteId=null; }
+
+function switchTab(tab,el){
+  document.querySelectorAll('.dtab').forEach(function(t){t.classList.remove('on');}); el.classList.add('on');
+  ['info','contactos','servicios','documentos'].forEach(function(t){ gc('tab-'+t).style.display=t===tab?'block':'none'; });
+}
+
+// CONTACTOS
+async function loadContactos(clienteId){
+  var r=await db.from('contactos').select('*').eq('cliente_id',clienteId).order('tipo');
+  if(r.error){ return; }
+  var list=r.data||[];
+  var tipos={'Comercial':'#50B2C0','Cobranza':'#D36135','Tecnico':'#2B4162','Facturacion':'#c8a96e','Otro':'#7a8394'};
+  gc('contactos-list').innerHTML=list.length?list.map(function(ct){
+    return '<div class="contacto-card" style="border-color:'+(tipos[ct.tipo]||'#7a8394')+'">'+
+      '<div class="contacto-tipo">'+(ct.tipo||'')+'</div>'+
+      '<div class="contacto-nombre">'+(ct.nombre||'')+'</div>'+
+      '<div class="contacto-datos">'+
+        (ct.puesto?ct.puesto+'<br>':'')+
+        (ct.telefono?'Tel: '+ct.telefono+'<br>':'')+
+        (ct.correo?ct.correo:'')+'</div>'+
+      '<div style="display:flex;gap:6px;margin-top:8px">'+
+        '<button class="btn-add-mini" onclick="openContactoModal('+ct.id+')">Editar</button>'+
+        '<button style="padding:4px 8px;background:var(--orange-light);color:#9e4020;border:none;border-radius:5px;font-size:11px;cursor:pointer" onclick="deleteContacto('+ct.id+')">Eliminar</button>'+
+      '</div>'+
+    '</div>';
+  }).join(''):'<p style="color:var(--gray-500);font-size:13px">No hay contactos registrados</p>';
+}
+
+async function openContactoModal(id){
+  editContactoId=id||null;
+  gc('contacto-modal-title').textContent=id?'Editar contacto':'Agregar contacto';
+  if(id){
+    var r=await db.from('contactos').select('*').eq('id',id).single();
+    if(!r.error&&r.data){
+      var ct=r.data;
+      gc('ct-tipo').value=ct.tipo||'Comercial';
+      gc('ct-nombre').value=ct.nombre||'';
+      gc('ct-puesto').value=ct.puesto||'';
+      gc('ct-tel').value=ct.telefono||'';
+      gc('ct-correo').value=ct.correo||'';
+      gc('ct-notas').value=ct.notas||'';
+    }
+  } else {
+    ['ct-nombre','ct-puesto','ct-tel','ct-correo','ct-notas'].forEach(function(f){gc(f).value='';});
+    gc('ct-tipo').value='Comercial';
+  }
+  gc('overlay-contacto').classList.add('open');
+}
+
+async function saveContacto(){
+  var nombre=gc('ct-nombre').value.trim();
+  if(!nombre){ showToast('El nombre es obligatorio','terr'); return; }
+  var row={cliente_id:currentClienteId,tipo:gc('ct-tipo').value,nombre:nombre,puesto:gc('ct-puesto').value.trim(),telefono:gc('ct-tel').value.trim(),correo:gc('ct-correo').value.trim(),notas:gc('ct-notas').value.trim()};
+  gc('btn-save-contacto').disabled=true; gc('btn-save-contacto').textContent='Guardando...';
+  var r=editContactoId?await db.from('contactos').update(row).eq('id',editContactoId):await db.from('contactos').insert([row]);
+  gc('btn-save-contacto').disabled=false; gc('btn-save-contacto').textContent='Guardar contacto';
+  if(r.error){ showToast('Error: '+r.error.message,'terr'); return; }
+  showToast('Contacto guardado','tok'); closeContactoModal(); await loadContactos(currentClienteId);
+}
+
+async function deleteContacto(id){
+  if(!confirm('Eliminar este contacto?')) return;
+  await db.from('contactos').delete().eq('id',id);
+  showToast('Contacto eliminado','tok'); await loadContactos(currentClienteId);
+}
+
+function closeContactoModal(){ gc('overlay-contacto').classList.remove('open'); editContactoId=null; }
+
+// SERVICIOS
+async function loadServicios(clienteId){
+  var r=await db.from('servicios').select('*').eq('cliente_id',clienteId);
+  if(r.error){ return; }
+  var list=r.data||[];
+  var tipos={'Activo':'ba','Suspendido':'bs','Cancelado':'bc'};
+  gc('servicios-list').innerHTML=list.length?list.map(function(sv){
+    return '<div class="servicio-card">'+
+      '<div class="servicio-hdr">'+
+        '<div>'+
+          '<div class="servicio-tipo">'+(sv.tipo_servicio||'')+'</div>'+
+          '<div style="font-size:11px;color:var(--gray-500);margin-top:2px">'+(sv.tipo_contrato||'')+' · '+(sv.capacidad||'')+'</div>'+
+        '</div>'+
+        '<div style="display:flex;align-items:center;gap:8px">'+
+          (sv.id_servicio?'<span class="servicio-id">'+sv.id_servicio+'</span>':'')+
+          '<span class="badge '+(tipos[sv.estatus]||'ba')+'">'+(sv.estatus||'')+'</span>'+
+        '</div>'+
+      '</div>'+
+      '<div class="servicio-grid">'+
+        '<div class="info-field"><span class="info-label">Capacidad</span><span class="info-value">'+(sv.capacidad||'—')+'</span></div>'+
+        '<div class="info-field"><span class="info-label">Monto mensual</span><span class="info-value">'+(sv.monto_mensual?'$'+Number(sv.monto_mensual).toLocaleString('es-MX'):'—')+'</span></div>'+
+        '<div class="info-field"><span class="info-label">Fecha instalacion</span><span class="info-value">'+(sv.fecha_instalacion?new Date(sv.fecha_instalacion+'T12:00').toLocaleDateString('es-MX'):'—')+'</span></div>'+
+        '<div class="info-field"><span class="info-label">Radio base</span><span class="info-value">'+(sv.radio_base||'—')+'</span></div>'+
+        '<div class="info-field"><span class="info-label">Entrega</span><span class="info-value">'+(sv.entrega||'—')+(sv.tercero?' ('+sv.tercero+')':'')+'</span></div>'+
+        '<div class="info-field"><span class="info-label">Adicionales</span><span class="info-value">'+(sv.adicionales||'—')+'</span></div>'+
+      '</div>'+
+      (sv.notas?'<div style="font-size:12px;color:var(--gray-500);margin-top:8px">'+sv.notas+'</div>':'')+
+      '<div style="display:flex;gap:6px;margin-top:10px">'+
+        '<button class="btn-add-mini" onclick="openServicioModal('+sv.id+')">Editar</button>'+
+        '<button style="padding:4px 8px;background:var(--orange-light);color:#9e4020;border:none;border-radius:5px;font-size:11px;cursor:pointer" onclick="deleteServicio('+sv.id+')">Eliminar</button>'+
+      '</div>'+
+    '</div>';
+  }).join(''):'<p style="color:var(--gray-500);font-size:13px">No hay servicios registrados</p>';
+}
+
+async function openServicioModal(id){
+  editServicioId=id||null;
+  gc('servicio-modal-title').textContent=id?'Editar servicio':'Agregar servicio';
+  if(id){
+    var r=await db.from('servicios').select('*').eq('id',id).single();
+    if(!r.error&&r.data){
+      var sv=r.data;
+      gc('sv-id').value=sv.id_servicio||'';
+      gc('sv-tipo').value=sv.tipo_servicio||'Internet Dedicado Microonda';
+      gc('sv-contrato').value=sv.tipo_contrato||'Fijo';
+      gc('sv-capacidad').value=sv.capacidad||'';
+      gc('sv-adicionales').value=sv.adicionales||'';
+      gc('sv-fecha').value=sv.fecha_instalacion||'';
+      gc('sv-inicio').value=sv.fecha_inicio||'';
+      gc('sv-fin').value=sv.fecha_fin||'';
+      gc('sv-entrega').value=sv.entrega||'Propio';
+      gc('sv-tercero').value=sv.tercero||'';
+      gc('sv-radio').value=sv.radio_base||'';
+      gc('sv-estatus').value=sv.estatus||'Activo';
+      gc('sv-monto').value=sv.monto_mensual||'';
+      gc('sv-notas').value=sv.notas||'';
+    }
+  } else {
+    ['sv-id','sv-capacidad','sv-adicionales','sv-fecha','sv-inicio','sv-fin','sv-tercero','sv-radio','sv-notas'].forEach(function(f){gc(f).value='';});
+    gc('sv-tipo').value='Internet Dedicado Microonda'; gc('sv-contrato').value='Fijo';
+    gc('sv-entrega').value='Propio'; gc('sv-estatus').value='Activo'; gc('sv-monto').value='';
+  }
+  gc('overlay-servicio').classList.add('open');
+}
+
+async function saveServicio(){
+  var tipo=gc('sv-tipo').value;
+  if(!tipo){ showToast('El tipo es obligatorio','terr'); return; }
+  var row={cliente_id:currentClienteId,id_servicio:gc('sv-id').value.trim(),tipo_servicio:tipo,tipo_contrato:gc('sv-contrato').value,capacidad:gc('sv-capacidad').value.trim(),adicionales:gc('sv-adicionales').value.trim(),fecha_instalacion:gc('sv-fecha').value||null,fecha_inicio:gc('sv-inicio').value||null,fecha_fin:gc('sv-fin').value||null,entrega:gc('sv-entrega').value,tercero:gc('sv-tercero').value.trim(),radio_base:gc('sv-radio').value.trim(),estatus:gc('sv-estatus').value,monto_mensual:gc('sv-monto').value||null,notas:gc('sv-notas').value.trim()};
+  gc('btn-save-servicio').disabled=true; gc('btn-save-servicio').textContent='Guardando...';
+  var r=editServicioId?await db.from('servicios').update(row).eq('id',editServicioId):await db.from('servicios').insert([row]);
+  gc('btn-save-servicio').disabled=false; gc('btn-save-servicio').textContent='Guardar servicio';
+  if(r.error){ showToast('Error: '+r.error.message,'terr'); return; }
+  showToast('Servicio guardado','tok'); closeServicioModal();
+  await loadServicios(currentClienteId);
+  var r2=await db.from('servicios').select('*'); serviciosTodos=r2.data||[]; updateStats();
+}
+
+async function deleteServicio(id){
+  if(!confirm('Eliminar este servicio?')) return;
+  await db.from('servicios').delete().eq('id',id);
+  showToast('Servicio eliminado','tok'); await loadServicios(currentClienteId);
+  var r2=await db.from('servicios').select('*'); serviciosTodos=r2.data||[]; updateStats();
+}
+
+function closeServicioModal(){ gc('overlay-servicio').classList.remove('open'); editServicioId=null; }
+
+// DOCUMENTOS
+async function loadDocs(clienteId){
+  var r=await db.from('documentos').select('*').eq('cliente_id',clienteId).order('created_at',{ascending:false});
+  if(r.error){ return; }
+  var list=r.data||[];
+  var iconos={'Evidencia instalacion':'📷','Acta de entrega':'📄','Anteproyecto':'📋','Memoria fotografica':'🖼️','Contrato':'📃','Otro':'📎'};
+  gc('docs-list').innerHTML=list.length?list.map(function(d){
+    var isImg=d.url&&(d.url.match(/\.(jpg|jpeg|png|gif|webp)/i));
+    return '<div class="doc-card" onclick="'+(isImg?'openLb(\''+d.url+'\')':'window.open(\''+d.url+'\',\'_blank\')')+'">'+
+      '<div class="doc-icon">'+(iconos[d.tipo]||'📎')+'</div>'+
+      '<div class="doc-tipo">'+(d.tipo||'')+'</div>'+
+      '<div class="doc-nombre">'+(d.nombre||'Documento')+'</div>'+
+    '</div>';
+  }).join(''):'<p style="color:var(--gray-500);font-size:13px">No hay documentos registrados</p>';
+}
+
+function openDocModal(){ docFile=null; gc('doc-file-name').textContent='JPG, PNG o PDF'; gc('overlay-doc').classList.add('open'); }
+function closeDocModal(){ gc('overlay-doc').classList.remove('open'); docFile=null; }
+function onDocSelect(e){ docFile=e.target.files[0]; if(docFile) gc('doc-file-name').textContent=docFile.name; }
+
+async function saveDoc(){
+  if(!docFile){ showToast('Selecciona un archivo','terr'); return; }
+  gc('btn-save-doc').disabled=true; gc('btn-save-doc').textContent='Subiendo...';
+  var ext=docFile.name.split('.').pop();
+  var path='cliente-'+currentClienteId+'/'+Date.now()+'.'+ext;
+  var up=await db.storage.from('clientes-docs').upload(path,docFile,{upsert:true});
+  if(up.error){ gc('btn-save-doc').disabled=false; gc('btn-save-doc').textContent='Subir'; showToast('Error: '+up.error.message,'terr'); return; }
+  var pub=db.storage.from('clientes-docs').getPublicUrl(path);
+  var row={cliente_id:currentClienteId,tipo:gc('doc-tipo').value,nombre:gc('doc-nombre').value.trim()||docFile.name,url:pub.data.publicUrl};
+  await db.from('documentos').insert([row]);
+  gc('btn-save-doc').disabled=false; gc('btn-save-doc').textContent='Subir';
+  showToast('Documento subido','tok'); closeDocModal(); await loadDocs(currentClienteId);
+}
+
+// CLIENTE MODAL
+function openClienteModal(id){
+  editClienteId=id||null;
+  gc('cliente-modal-title').textContent=id?'Editar cliente':'Nuevo cliente';
+  if(id){
+    var c=clientes.find(function(x){return x.id==id;});
+    if(c){
+      gc('c-razon').value=c.razon_social||''; gc('c-comercial').value=c.nombre_comercial||'';
+      gc('c-rfc').value=c.rfc||''; gc('c-industria').value=c.industria||'';
+      gc('c-tel').value=c.telefono||''; gc('c-correo').value=c.correo||'';
+      gc('c-web').value=c.sitio_web||''; gc('c-ejecutivo').value=c.ejecutivo||'';
+      gc('c-estatus').value=c.estatus||'Activo'; gc('c-periodo').value=c.periodo_contrato||'';
+      gc('c-finicio').value=c.fecha_inicio||''; gc('c-ffin').value=c.fecha_fin||'';
+      gc('c-dir').value=c.direccion||''; gc('c-ciudad').value=c.ciudad||'';
+      gc('c-estado').value=c.estado||''; gc('c-cp').value=c.cp||'';
+      gc('c-notas').value=c.notas||'';
+    }
+  } else {
+    ['c-razon','c-comercial','c-rfc','c-industria','c-tel','c-correo','c-web','c-ejecutivo','c-periodo','c-finicio','c-ffin','c-dir','c-ciudad','c-estado','c-cp','c-notas'].forEach(function(f){gc(f).value='';});
+    gc('c-estatus').value='Activo';
+  }
+  gc('overlay-cliente').classList.add('open');
+}
+
+async function saveCliente(){
+  var razon=gc('c-razon').value.trim();
+  if(!razon){ showToast('La razon social es obligatoria','terr'); return; }
+  var codigo=editClienteId?(clientes.find(function(x){return x.id==editClienteId;})||{}).codigo:generateCodigo();
+  var row={codigo:codigo,razon_social:razon,nombre_comercial:gc('c-comercial').value.trim(),rfc:gc('c-rfc').value.trim(),industria:gc('c-industria').value.trim(),telefono:gc('c-tel').value.trim(),correo:gc('c-correo').value.trim(),sitio_web:gc('c-web').value.trim(),ejecutivo:gc('c-ejecutivo').value.trim(),estatus:gc('c-estatus').value,periodo_contrato:gc('c-periodo').value.trim(),fecha_inicio:gc('c-finicio').value||null,fecha_fin:gc('c-ffin').value||null,direccion:gc('c-dir').value.trim(),ciudad:gc('c-ciudad').value.trim(),estado:gc('c-estado').value.trim(),cp:gc('c-cp').value.trim(),notas:gc('c-notas').value.trim()};
+  gc('btn-save-cliente').disabled=true; gc('btn-save-cliente').textContent='Guardando...';
+  var r=editClienteId?await db.from('clientes').update(row).eq('id',editClienteId):await db.from('clientes').insert([row]);
+  gc('btn-save-cliente').disabled=false; gc('btn-save-cliente').textContent='Guardar cliente';
+  if(r.error){ showToast('Error: '+r.error.message,'terr'); return; }
+  showToast(editClienteId?'Cliente actualizado':'Cliente creado','tok');
+  closeClienteModal(); await loadAll();
+}
+
+async function deleteCliente(id){
+  if(!confirm('Eliminar este cliente y todos sus datos?')) return;
+  await db.from('clientes').delete().eq('id',id);
+  showToast('Cliente eliminado','tok'); await loadAll();
+}
+
+function closeClienteModal(){ gc('overlay-cliente').classList.remove('open'); editClienteId=null; }
+
+// OTROS
+function openLb(url){ gc('lb-img').src=url; gc('lightbox').classList.add('open'); }
+function exportCSV(){
+  var h=['Codigo','Razon Social','Nombre Comercial','RFC','Industria','Telefono','Correo','Ejecutivo','Estatus','Periodo','Fecha Inicio','Fecha Fin','Direccion','Ciudad','Estado'];
+  var rows=[h.join(',')].concat(clientes.map(function(c){
+    return [c.codigo,c.razon_social,c.nombre_comercial,c.rfc,c.industria,c.telefono,c.correo,c.ejecutivo,c.estatus,c.periodo_contrato,c.fecha_inicio,c.fecha_fin,c.direccion,c.ciudad,c.estado]
+      .map(function(v){return '"'+((v||'').toString().replace(/"/g,'""'))+'"';}).join(',');
+  }));
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8;'}));
+  a.download='clientes-'+new Date().toISOString().split('T')[0]+'.csv'; a.click();
+}
+function showToast(msg,cls){ var t=gc('toast'); t.textContent=msg; t.className='toast '+cls+' show'; setTimeout(function(){t.classList.remove('show');},3000); }
+
+db.auth.getSession().then(function(r){ if(r.data&&r.data.session&&r.data.session.user) onLogin(r.data.session.user); });
+</script>
+</body>
+</html>
